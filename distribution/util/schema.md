@@ -26,25 +26,27 @@ would serialize as follows
 ```json
 {
     "type": "object",
+    "id": "#0",
     "value": {
         "a": {
             "type": "number",
-            "value": 1
+            "value": "1"
         },
         "b": {
             "type": "number",
-            "value": 2
+            "value": "2"
         },
         "c": {
             "type": "object",
+            "id": "#1",
             "value": {
                 "d": {
                     "type": "number",
-                    "value": 3
+                    "value": "3"
                 },
                 "e": {
                     "type": "number",
-                    "value": 3
+                    "value": "4"
                 }
             }
         },
@@ -62,10 +64,11 @@ would serialize as follows
 ```json
 {
     "type": "array",
+    "id": "#0",
     "value": [
         {
             "type": "number",
-            "value": 1
+            "value": "1"
         },
         {
             "type": "string",
@@ -73,20 +76,21 @@ would serialize as follows
         },
         {
             "type": "object",
+            "id": "#1",
             "value": {
                 "a": {
                     "type": "number",
-                    "value": 3
+                    "value": "3"
                 }
             }
         },
         {
             "type": "number",
-            "value": 4
+            "value": "4"
         },
         {
             "type": "number",
-            "value": 5
+            "value": "5"
         }
     ]
 }
@@ -96,7 +100,7 @@ To parse circular objects, we can store every object that we parse in a set name
 
 This means that the following call to `serialize`
 ```javascript
-x = {
+var x = {
     "a": 1,
     "b": 2,
     "c": 3,
@@ -112,15 +116,15 @@ would result in the following output
     "value": {
         "a": {
             "type": "number",
-            "value": 1
+            "value": "1"
         },
         "b": {
             "type": "number",
-            "value": 2
+            "value": "2"
         },
         "c": {
             "type": "number",
-            "value": 3
+            "value": "3"
         },
         "self": {
             "type": "reference",

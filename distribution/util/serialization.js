@@ -40,19 +40,21 @@ function recursiveSerialize(object, objectSet, objectDict) {
 
   if (objectSet.has(object)) {
     // circular ref detected
-    const reference = objectDict.get(object);
+    const reference = objectDict[object];
     console.assert(reference !== undefined);
     return {
       "type": "reference",
-      "value": objectDict.get(object),
+      "id": reference,
     };
   } else {
+    const reference = `#${objectSet.size}`
     objectSet.add(object);
-    objectDict.add(object, `#${objectSet.size}`);
+    objectDict[object] = reference;
 
     if (type === 'array') {
       return {
         "type": "array",
+        "id": reference,
         "value": object.map((element) => recursiveSerialize(element, objectSet, objectDict)),
       };
     } else {
@@ -62,6 +64,7 @@ function recursiveSerialize(object, objectSet, objectDict) {
       }
       return {
         "type": "object",
+        "id": reference,
         "value": result,
       };
     }
