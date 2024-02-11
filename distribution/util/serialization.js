@@ -71,13 +71,83 @@ function recursiveSerialize(object, objectSet, objectDict) {
   }
 }
 
-
 function serialize(object) { // invocation
   return JSON.stringify(recursiveSerialize(object, new Set(), {}));
 }
 
+function buildObjectDict(object, objectDict) {
+  if (object.type === 'number') {
+    return Number(object.value);
+  }
+  if (object.type === 'string') {
+    return object.value;
+  }
+  if (object.type === 'boolean') {
+    return object.value === 'true';
+  }
+  if (object.type === 'null') {
+    return null;
+  }
+
+  if (object.type === 'array') {
+    // assertion for double IDs
+    console.assert(objectDict[object.id] === undefined);
+    var deserialized = [];
+    objectDict[object.id] = deserialized;
+
+    deserialized = object.value.map((element) => buildObjectDict(element, objectDict));
+
+    return deserialized;
+  }
+
+  if (object.type === 'object') {
+    // assertion for double IDs
+    console.assert(objectDict[object.id] === undefined);
+    var result = {};
+    objectDict[object.id] = result;
+
+    for (const key in object.value) {
+      result[key] = buildObjectDict(object.value[key], objectDict);
+    }
+    
+    return result;
+  }
+  if (object.type === 'reference') {
+    // return the same
+    return object;
+  }
+
+  throw new Error('ERR: buildObjectDict() received an unknown type!');
+}
+
+function injectObjectDict(object, objectDict) {
+  const jsType = getType(object);
+
+  if (jsType === 'array') {
+    return object.map((element) => injectObjectDict(element, objectDict));
+  }
+
+  if (jsType === 'object') {
+    if (object.type === 'reference') {
+      console.assert(objectDict[object.id] !== undefined); // disaster
+      return objectDict[object.id];
+    }
+
+    // otherwise, iterate
+    const result = {};
+    for (const key in object) {
+      result[key] = injectObjectDict(object[key], objectDict);
+    }
+    return result;
+  }
+
+  return object;
+}
+
 function deserialize(string) {
-  return {};
+  objectDict = {};
+  object = buildObjectDict(JSON.parse(string), objectDict);
+  return injectObjectDict(object, objectDict);
 }
 
 module.exports = {

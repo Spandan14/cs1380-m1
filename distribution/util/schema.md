@@ -133,3 +133,5 @@ would result in the following output
     }
 }
 ```
+# Deserialization Process
+We deserialize by going through every object and if it has an ID, we consume it and store the serialized output in a dictionary. We convert everything except values with `type` as `"reference"` as these get replaced later, meaning that deserialization is a two-pass process.
