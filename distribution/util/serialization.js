@@ -134,11 +134,10 @@ function injectObjectDict(object, objectDict) {
     }
 
     // otherwise, iterate
-    const result = {};
     for (const key in object) {
-      result[key] = injectObjectDict(object[key], objectDict);
+      object[key] = injectObjectDict(object[key], objectDict);
     }
-    return result;
+    return object;
   }
 
   return object;
