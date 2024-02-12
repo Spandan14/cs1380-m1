@@ -1,7 +1,7 @@
 const nativemap = require('./nativemap');
 
-nativeFunctionMap = nativemap.generateNativeFunctionMap();
-invertedNativeFunctionMap = new Map();
+var nativeFunctionMap = nativemap.generateNativeFunctionMap();
+var invertedNativeFunctionMap = new Map();
 for (const [key, value] of nativeFunctionMap) {
   invertedNativeFunctionMap.set(value, key);
 }
