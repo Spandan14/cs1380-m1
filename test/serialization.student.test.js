@@ -299,3 +299,56 @@ test('DESERIALIZE-ONLY TEST 4 | CYCLE TEST 1', () => {
   expectation.self = expectation;
   expect(deserialized).toEqual(expectation);
 });
+
+
+test('DESERIALIZE-ONLY TEST 5 | CYCLE TEST 2', () => {
+  const serialized = {
+    'type': 'object',
+    'id': '#0',
+    'value': {
+      'd': {
+        'type': 'number',
+        'value': '4',
+      },
+      'e': {
+        'type': 'object',
+        'id': '#1',
+        'value': {
+          'a': {
+            'type': 'number',
+            'value': '1',
+          },
+          'b': {
+            'type': 'number',
+            'value': '2',
+          },
+          'c': {
+            'type': 'number',
+            'value': '3',
+          },
+          'self': {
+            'type': 'reference',
+            'id': '#1',
+          },
+        },
+      },
+      'self': {
+        'type': 'reference',
+        'id': '#0',
+      },
+    },
+  };
+  const deserialized = util.deserialize(JSON.stringify(serialized));
+  var x = {
+    'a': 1,
+    'b': 2,
+    'c': 3,
+  };
+  x.self = x;
+  var expectation = {
+    'd': 4,
+    'e': x,
+  };
+  expectation.self = expectation;
+  expect(deserialized).toEqual(expectation);
+});

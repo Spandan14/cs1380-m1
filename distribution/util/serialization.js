@@ -2,6 +2,9 @@ function getType(object) {
   if (object === null) {
     return 'null';
   }
+  if (typeof object === 'undefined') {
+    return 'undefined';
+  }
   if (typeof object === 'number') {
     return 'number';
   }
@@ -32,6 +35,12 @@ function recursiveSerialize(object, objectSet, objectMap) {
     return {
       'type': type,
       'value': 'null',
+    };
+  }
+  if (type === 'undefined') {
+    return {
+      'type': type,
+      'value': 'undefined',
     };
   }
 
@@ -91,6 +100,9 @@ function buildObjectMap(object, objectMap) {
   }
   if (object.type === 'null') {
     return null;
+  }
+  if (object.type === 'undefined') {
+    return undefined;
   }
 
   if (object.type === 'array') {
@@ -153,7 +165,7 @@ function injectObjectMap(object, objectMap) {
 }
 
 function deserialize(string) {
-  objectMap = {};
+  objectMap = new Map();
   object = buildObjectMap(JSON.parse(string), objectMap);
   return injectObjectMap(object, objectMap);
 }
