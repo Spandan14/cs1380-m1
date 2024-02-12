@@ -1,3 +1,11 @@
+const nativemap = require('./nativemap');
+
+nativeFunctionMap = nativemap.generateNativeFunctionMap();
+invertedNativeFunctionMap = new Map();
+for (const [key, value] of nativeFunctionMap) {
+  invertedNativeFunctionMap.set(value, key);
+}
+
 function getType(object) {
   if (object === null) {
     return 'null';
@@ -14,9 +22,21 @@ function getType(object) {
   if (typeof object === 'boolean') {
     return 'boolean';
   }
+  if (typeof object === 'function') {
+    if (nativeFunctionMap.has(object)) {
+      return 'nativeFunction';
+    }
+    return 'function';
+  }
   if (typeof object === 'object') {
     if (Array.isArray(object)) {
       return 'array';
+    }
+    if (object instanceof Error) {
+      return 'error';
+    }
+    if (object instanceof Date) {
+      return 'date';
     }
     return 'object';
   }
@@ -25,7 +45,8 @@ function getType(object) {
 
 function recursiveSerialize(object, objectSet, objectMap) {
   const type = getType(object);
-  if (type === 'number' || type === 'string' || type === 'boolean') {
+  if (type === 'number' || type === 'string' || type === 'boolean' ||
+      type === 'function') {
     return {
       'type': type,
       'value': object.toString(),
@@ -41,6 +62,27 @@ function recursiveSerialize(object, objectSet, objectMap) {
     return {
       'type': type,
       'value': 'undefined',
+    };
+  }
+  if (type === 'nativeFunction') {
+    return {
+      'type': 'nativeFunction',
+      'value': nativeFunctionMap.get(object),
+    };
+  }
+  if (type === 'error') {
+    return {
+      'type': 'error',
+      'value': {
+        'message': object.message,
+        'stack': object.stack,
+      },
+    };
+  }
+  if (type === 'date') {
+    return {
+      'type': 'date',
+      'value': object.getTime(),
     };
   }
 
@@ -84,7 +126,7 @@ function recursiveSerialize(object, objectSet, objectMap) {
 }
 
 function serialize(object) { // invocation
-  objectMap = new Map();
+  var objectMap = new Map();
   return JSON.stringify(recursiveSerialize(object, new Set(), objectMap));
 }
 
@@ -98,11 +140,27 @@ function buildObjectMap(object, objectMap) {
   if (object.type === 'boolean') {
     return object.value === 'true';
   }
+  if (object.type === 'function') {
+    // dangerous dangerous dangerous dangerous
+    // nightmare nightmare nightmare nightmare
+    return eval(`(${object.value})`);
+  }
+  if (object.type === 'nativeFunction') {
+    return invertedNativeFunctionMap.get(object.value);
+  }
   if (object.type === 'null') {
     return null;
   }
   if (object.type === 'undefined') {
     return undefined;
+  }
+  if (object.type === 'error') {
+    var error = new Error(object.value.message);
+    error.stack = object.value.stack;
+    return error;
+  }
+  if (object.type === 'date') {
+    return new Date(object.value);
   }
 
   if (object.type === 'array') {
@@ -165,8 +223,8 @@ function injectObjectMap(object, objectMap) {
 }
 
 function deserialize(string) {
-  objectMap = new Map();
-  object = buildObjectMap(JSON.parse(string), objectMap);
+  var objectMap = new Map();
+  var object = buildObjectMap(JSON.parse(string), objectMap);
   return injectObjectMap(object, objectMap);
 }
 
