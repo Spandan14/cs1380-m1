@@ -20,18 +20,18 @@ function getType(object) {
   throw new Error('ERR: getType() received an unknown type!');
 }
 
-function recursiveSerialize(object, objectSet, objectDict) {
+function recursiveSerialize(object, objectSet, objectMap) {
   const type = getType(object);
   if (type === 'number' || type === 'string' || type === 'boolean') {
     return {
-      "type": type,
-      "value": object.toString(),
+      'type': type,
+      'value': object.toString(),
     };
   }
   if (type === 'null') {
     return {
-      "type": type,
-      "value": "null",
+      'type': type,
+      'value': 'null',
     };
   }
 
@@ -40,42 +40,46 @@ function recursiveSerialize(object, objectSet, objectDict) {
 
   if (objectSet.has(object)) {
     // circular ref detected
-    const reference = objectDict[object];
+    const reference = objectMap.get(object);
     console.assert(reference !== undefined);
     return {
-      "type": "reference",
-      "id": reference,
+      'type': 'reference',
+      'id': reference,
     };
   } else {
-    const reference = `#${objectSet.size}`
+    const reference = `#${objectSet.size}`;
     objectSet.add(object);
-    objectDict[object] = reference;
+    objectMap.set(object, reference);
 
     if (type === 'array') {
       return {
-        "type": "array",
-        "id": reference,
-        "value": object.map((element) => recursiveSerialize(element, objectSet, objectDict)),
+        'type': 'array',
+        'id': reference,
+        'value': object.map((element) => recursiveSerialize(element,
+            objectSet, objectMap)),
       };
     } else {
       const result = {};
       for (const key in object) {
-        result[key] = recursiveSerialize(object[key], objectSet, objectDict);
+        if (object.hasOwnProperty(key)) {
+          result[key] = recursiveSerialize(object[key], objectSet, objectMap);
+        }
       }
       return {
-        "type": "object",
-        "id": reference,
-        "value": result,
+        'type': 'object',
+        'id': reference,
+        'value': result,
       };
     }
   }
 }
 
 function serialize(object) { // invocation
-  return JSON.stringify(recursiveSerialize(object, new Set(), {}));
+  objectMap = new Map();
+  return JSON.stringify(recursiveSerialize(object, new Set(), objectMap));
 }
 
-function buildObjectDict(object, objectDict) {
+function buildObjectMap(object, objectMap) {
   if (object.type === 'number') {
     return Number(object.value);
   }
@@ -91,25 +95,28 @@ function buildObjectDict(object, objectDict) {
 
   if (object.type === 'array') {
     // assertion for double IDs
-    console.assert(objectDict[object.id] === undefined);
+    console.assert(objectMap.get(object.id) === undefined);
     var deserialized = [];
-    objectDict[object.id] = deserialized;
+    objectMap.set(object.id, deserialized);
 
-    deserialized = object.value.map((element) => buildObjectDict(element, objectDict));
+    deserialized = object.value.map((element) =>
+      buildObjectMap(element, objectMap));
 
     return deserialized;
   }
 
   if (object.type === 'object') {
     // assertion for double IDs
-    console.assert(objectDict[object.id] === undefined);
+    console.assert(objectMap.get(object.id) === undefined);
     var result = {};
-    objectDict[object.id] = result;
+    objectMap.set(object.id, result);
 
     for (const key in object.value) {
-      result[key] = buildObjectDict(object.value[key], objectDict);
+      if (object.value.hasOwnProperty(key)) {
+        result[key] = buildObjectMap(object.value[key], objectMap);
+      }
     }
-    
+
     return result;
   }
   if (object.type === 'reference') {
@@ -117,25 +124,27 @@ function buildObjectDict(object, objectDict) {
     return object;
   }
 
-  throw new Error('ERR: buildObjectDict() received an unknown type!');
+  throw new Error('ERR: buildObjectMap() received an unknown type!');
 }
 
-function injectObjectDict(object, objectDict) {
+function injectObjectMap(object, objectMap) {
   const jsType = getType(object);
 
   if (jsType === 'array') {
-    return object.map((element) => injectObjectDict(element, objectDict));
+    return object.map((element) => injectObjectMap(element, objectMap));
   }
 
   if (jsType === 'object') {
     if (object.type === 'reference') {
-      console.assert(objectDict[object.id] !== undefined); // disaster
-      return objectDict[object.id];
+      console.assert(objectMap.get(object.id) !== undefined); // disaster
+      return objectMap.get(object.id);
     }
 
     // otherwise, iterate
     for (const key in object) {
-      object[key] = injectObjectDict(object[key], objectDict);
+      if (object.hasOwnProperty(key)) {
+        object[key] = injectObjectMap(object[key], objectMap);
+      }
     }
     return object;
   }
@@ -144,9 +153,9 @@ function injectObjectDict(object, objectDict) {
 }
 
 function deserialize(string) {
-  objectDict = {};
-  object = buildObjectDict(JSON.parse(string), objectDict);
-  return injectObjectDict(object, objectDict);
+  objectMap = {};
+  object = buildObjectMap(JSON.parse(string), objectMap);
+  return injectObjectMap(object, objectMap);
 }
 
 module.exports = {
