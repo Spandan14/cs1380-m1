@@ -16,6 +16,9 @@
     "test-student-only": "jest --testPathPattern=student",
     "lint": "eslint --ignore-path .gitignore ."
   },
+  "jest": {
+    "testEnvironment": "jsdom"
+  },
   "author": "",
   "license": "ISC"
 }
